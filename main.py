@@ -70,15 +70,9 @@ def train():
                     feed_y[i][feed_y_idx[i][-1]] = 1
                     label.append(feed_y_idx[i][-1])
 
-                loss,train_op,predictions,w,b,emb,outputs,state = sess.run([model.loss, model.train_op, model.predictions, model.w, model.b,model.embedding,model.outputs,model.state],
+                loss,train_op,predictions,w,b,emb,outputs,state,accuracy = sess.run([model.loss, model.train_op, model.predictions, model.w, model.b,model.embedding,model.outputs,model.state,model.accuracy],
                                                      feed_dict={c:feed_c,y:feed_y})
                 total_loss += loss*config.batch_size
-                accuracy = 0.
-                for i in range(config.batch_size):
-                    if predictions[i] == label[i]:
-                        accuracy += 1.
-                accuracy = accuracy / config.batch_size
-
                 if step % 10 == 0:
                     print('epoch: {},step: {}, loss: {:.2f}, accuracy: {:.2f}'.format(epoch,step,loss,accuracy))
             print('epoch: {}, train loss: {:.2f}'.format(epoch, total_loss))
@@ -99,18 +93,16 @@ def train():
                     feed_y[i][feed_y_idx[i][-1]] = 1
                     label.append(feed_y_idx[i][-1])
 
-                loss,predictions= sess.run([model.loss,model.predictions],feed_dict={c:feed_c,y:feed_y})
+                loss,predictions,accuracy= sess.run([model.loss,model.predictions,model.accuracy],feed_dict={c:feed_c,y:feed_y})
                 total_loss += loss * config.batch_size
 
-                accuracy = 0.
-                for i in range(config.batch_size):
-                    if predictions[i] == label[i]:
-                        accuracy += 1.
-                accuracy = accuracy / config.batch_size
                 total_accuracy += accuracy
             total_accuracy = total_accuracy / batchs
             print('epoch: {}, dev loss: {:.2f}'.format(epoch, total_loss))
             print('epoch: {}, dev accuracy: {:.3f}'.format(epoch,total_accuracy))
+
+            save_path = saver.save(sess,"saver/model.ckpt")
+            print("model saved in path : {}".format(save_path))
 
 
 

@@ -2,12 +2,12 @@
 
 import tensorflow as tf
 import dataset
-import func
+from func import rnn_lstm,rnn_bi_lstm
 
-SENTENCE_LENGTH = 100
-BATCH_SIZE = 25
-HIDDEN = 100
-EMBEDDING_SIZE = 300
+# SENTENCE_LENGTH = 100
+# BATCH_SIZE = 25
+# HIDDEN = 100
+# EMBEDDING_SIZE = 300
 
 # class Model(object):
 #     def __init__(self,batch,embedding_mat,trainable):
@@ -74,14 +74,21 @@ class Model(object):
             #                                  trainable= True)
             inputs = tf.nn.embedding_lookup(self.embedding, self.c)
 
-        outputs1,state = self._build_rnn_graph_lstm(inputs=inputs, config=config, is_training=True)
+        # outputs1,state = self._build_rnn_graph_lstm(inputs=inputs, config=config, is_training=True)
+        # rnn = rnn_lstm(num_layers=config.num_layers, hidden_size=config.hidden_size, batch_size=config.batch_size)
+        # outputs1, state = rnn(inputs=inputs, sequence_length=self.c_len)
+        rnn = rnn_bi_lstm(num_layers=config.num_layers, hidden_size=config.hidden_size, batch_size=config.batch_size)
+        outputs1, state = rnn(inputs=inputs, sequence_length=self.c_len)
+
         # outputs_shape = tf.shape(outputs1)
         # outputs = tf.slice(outputs1,[0,outputs_shape[1]-1,0],[outputs_shape[0],1,outputs_shape[2]])
         # outputs = tf.reshape(outputs, [self.batch_size,-1])
         outputs = state[-1][-1]
 
+        outputs = tf.concat([state[0][-1][-1],state[-1][-1][-1]],axis=1)
+
         w = tf.get_variable("w", dtype=tf.float32,
-                            initializer=tf.random_uniform([self.hidden_size,self.num_classes]))
+                            initializer=tf.random_uniform([self.hidden_size*2,self.num_classes]))
         b = tf.get_variable("b", dtype=tf.float32, initializer=tf.zeros([self.batch_size, self.num_classes]))
         logits = tf.matmul(outputs,w)+b
 
@@ -91,18 +98,14 @@ class Model(object):
         self.b = b
         self.logits = logits
         self.losses = losses
-        self.outputs = outputs
+        self.outputs = outputs1
         self.state = state
 
         # accuracy
         self.predictions = tf.argmax(logits, axis=1)
-        # labels = tf.argmax(self.y, axis=1)
-        # accuracy = 0.
-        # for i in range(self.batch_size):
-        #     if predictions[i]==labels[i]:
-        #         accuracy += 1
-        # accuracy = accuracy / self.batch_size
-        # self.accuracy = accuracy
+        labels = tf.argmax(self.y, axis=1)
+        equals = tf.cast(tf.equal(self.predictions,labels),tf.int32)
+        self.accuracy = tf.divide(tf.reduce_sum(equals),self.batch_size)
 
         if is_training:
             self.lr = tf.get_variable("lr", dtype=tf.float32,
