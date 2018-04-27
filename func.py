@@ -1,6 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import tensorflow as tf
+from tensorflow.python.ops.random_ops import random_uniform
+from tensorflow.python.ops.math_ops import floor
+# import tensorflow.python.ops.nn_ops as nn_ops
+# import tensorflow.python.ops.random_ops as random_ops
+# import tensorflow.python.ops.math_ops as math_ops
+
 
 # class lstm(object):
 #     def __init__(self,num_layers, num_units, batch_size, input_size, keep_prob=1.0, is_train=None, scope="lstm"):
@@ -93,3 +99,38 @@ class rnn_bi_lstm(object):
         return outputs,state
 
 
+def _embedding_dropout(x,keep_prob,noise_shape=None, seed=None, name=None):
+    """
+    the implementation of lexicon-based dropout
+    :param x: inputs, size:[batch_size,max_seq_len,embedding_size]
+    :param keep_prob: keep probabilities, size:[batch_size,max_seq_len]
+    :param noise_shape: default like the size of keep_prob
+    :param seed:
+    :param name:
+    :return: a tensor of the same shape of 'x'
+    """
+    noise_shape = keep_prob.get_shape()
+    random_tensor = keep_prob
+    random_tensor += tf.random_uniform(noise_shape,seed=seed,dtype=x.dtype)
+    binary_tensor = tf.floor(random_tensor)
+    # binary tensor: [batch_size,max_seq_len]-->[batch_size,max_seq_len,embedding_size]
+    binary_tensor = expand_last_dims(binary_tensor,tf.shape(x)[-1])
+    ret = x * binary_tensor
+
+    return ret
+
+def embedding_dropout(x,keep_prob,is_train):
+    keep_prob1 = expand_last_dims(keep_prob,tf.shape(x)[-1])
+    # if is_train:
+    #     x = _embedding_dropout(x,keep_prob)
+    # else:
+    #     x = keep_prob1*x
+    x = x*keep_prob1
+    return x
+
+def expand_last_dims(inputs,size):
+    # inputs:  shape  [a,a,b]-->[a,a,b,size]
+    r = tf.rank(inputs)
+    inputs = tf.expand_dims(inputs, axis=r)
+    inputs = tf.concat(values = [inputs for _ in range(300)], axis=r)
+    return inputs

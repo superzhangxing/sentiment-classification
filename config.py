@@ -11,3 +11,6 @@ class Config(object):
         self.epochs = 100
         self.num_classes = 2
 
+        self.neural_keep = 0.7
+        self.sentiment_keep = 1
+

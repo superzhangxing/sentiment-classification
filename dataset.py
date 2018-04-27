@@ -17,6 +17,7 @@ MR_TRAIN_FILE = 'dataset/MR/train'
 MR_DEV_FILE = 'dataset/MR/dev'
 
 LEXICON = 'dataset/lexicon_negpos'
+MR_LEXICON = 'dataset/MR/lexicon'
 EMBEDDING_LENGTH = 300
 
 GLOVE = 'dataset/glove.840B.300d.txt'
@@ -73,6 +74,10 @@ class Dataset_MR(object):
                 vocab_id2label[id] = lexicon[word]
 
         print('lexicon length: {}'.format(len(vocab_id2label)))
+
+        with open(MR_LEXICON,'wb') as fd:
+            pickle.dump(vocab_id2label,fd)
+
         return vocab_id2label
 
 

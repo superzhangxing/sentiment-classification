@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 import dataset
-from func import rnn_lstm,rnn_bi_lstm
+from func import rnn_lstm,rnn_bi_lstm,embedding_dropout
 
 # SENTENCE_LENGTH = 100
 # BATCH_SIZE = 25
@@ -55,10 +55,11 @@ from func import rnn_lstm,rnn_bi_lstm
 
 class Model(object):
 
-    def __init__(self, config, is_training, c, y, embedding_mat):
+    def __init__(self, config, is_training, c, y, keep_prob, embedding_mat):
         self.is_training = is_training
         self.c = c
         self.y = y
+        self.keep_prob = keep_prob
         self.batch_size = config.batch_size
         self.hidden_size = config.hidden_size
         self.num_classes = config.num_classes
@@ -74,6 +75,7 @@ class Model(object):
             #                                  trainable= True)
             inputs = tf.nn.embedding_lookup(self.embedding, self.c)
 
+        inputs = embedding_dropout(inputs, self.keep_prob, is_train=self.is_training)
         # outputs1,state = self._build_rnn_graph_lstm(inputs=inputs, config=config, is_training=True)
         # rnn = rnn_lstm(num_layers=config.num_layers, hidden_size=config.hidden_size, batch_size=config.batch_size)
         # outputs1, state = rnn(inputs=inputs, sequence_length=self.c_len)
@@ -83,7 +85,7 @@ class Model(object):
         # outputs_shape = tf.shape(outputs1)
         # outputs = tf.slice(outputs1,[0,outputs_shape[1]-1,0],[outputs_shape[0],1,outputs_shape[2]])
         # outputs = tf.reshape(outputs, [self.batch_size,-1])
-        outputs = state[-1][-1]
+        # outputs = state[-1][-1]
 
         outputs = tf.concat([state[0][-1][-1],state[-1][-1][-1]],axis=1)
 
