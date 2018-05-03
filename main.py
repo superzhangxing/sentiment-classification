@@ -86,7 +86,7 @@ def train():
                         else:
                             feed_keep_prob[i].append(config.neural_keep)
 
-                loss,train_op,predictions,w,b,emb,outputs,state,accuracy = sess.run([model.loss, model.train_op, model.predictions, model.w, model.b,model.embedding,model.outputs,model.state,model.accuracy],
+                loss,train_op,predictions,emb,outputs,accuracy = sess.run([model.loss, model.train_op, model.predictions,model.embedding,model.outputs,model.accuracy],
                                                      feed_dict={c:feed_c,y:feed_y,keep_prob:feed_keep_prob})
                 total_loss += loss*config.batch_size
                 if step % 10 == 0:

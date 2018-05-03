@@ -3,6 +3,7 @@
 import tensorflow as tf
 from tensorflow.python.ops.random_ops import random_uniform
 from tensorflow.python.ops.math_ops import floor
+from tensorflow.python.framework import tensor_util
 # import tensorflow.python.ops.nn_ops as nn_ops
 # import tensorflow.python.ops.random_ops as random_ops
 # import tensorflow.python.ops.math_ops as math_ops
@@ -98,6 +99,48 @@ class rnn_bi_lstm(object):
                                                          dtype=tf.float32)
         return outputs,state
 
+class cnn(object):
+    def __init__(self, filter_size,batch_size,out_channels, pool_size):
+        self.filter_size = filter_size
+        self.batch_size = batch_size
+        self.out_channels = out_channels
+        self.pool_size = pool_size
+
+    def __call__(self, inputs, max_sequence_length):
+        print(inputs.get_shape().as_list())
+        # cut inputs to seq_len
+        inputs = tf.slice(inputs, [0,0,0], [inputs.get_shape()[0],max_sequence_length,inputs.get_shape()[2]])
+        print(inputs.get_shape().as_list())
+        # conv layer
+        inputs = tf.expand_dims(inputs,axis=-1)
+        filter_shape = [self.filter_size,1,1,self.out_channels] # along embedding ,filter size is 1
+        w = tf.get_variable(name='conv_w',dtype=tf.float32, initializer=tf.random_uniform(shape=filter_shape,minval=0,maxval=0.1))
+        b = tf.get_variable(name='conv_b',dtype=tf.float32, initializer=tf.zeros([self.out_channels]))
+        conv = tf.nn.conv2d(inputs, filter=w, strides=[1,1,1,1], padding='VALID', name='conv')
+        output = tf.nn.bias_add(conv,b)
+
+        # activition
+        output = tf.nn.relu(output)
+
+        # max pooling layer
+        output = tf.reduce_max(output,axis=1)
+
+        return output
+
+class dense(object):
+    def __init__(self, output_size):
+        self.output_size = output_size
+
+    def __call__(self,inputs,is_bais = True):
+        ### inputs is a 2-D tensor
+        shape = inputs.get_shape().as_list()
+        print(shape)
+        w = tf.get_variable(name='dense_w',dtype=tf.float32,initializer=tf.random_uniform([shape[1],self.output_size],maxval= 0.1))
+        output = tf.matmul(inputs, w)
+        if is_bais:
+            b = tf.get_variable(name='dense_b',dtype=tf.float32, initializer=tf.zeros([shape[0], self.output_size]))
+            output = output + b
+        return output
 
 def _embedding_dropout(x,keep_prob,noise_shape=None, seed=None, name=None):
     """

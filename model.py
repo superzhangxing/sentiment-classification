@@ -2,7 +2,7 @@
 
 import tensorflow as tf
 import dataset
-from func import rnn_lstm,rnn_bi_lstm,embedding_dropout
+from func import rnn_lstm,rnn_bi_lstm,cnn,dense,embedding_dropout
 
 # SENTENCE_LENGTH = 100
 # BATCH_SIZE = 25
@@ -76,32 +76,53 @@ class Model(object):
             inputs = tf.nn.embedding_lookup(self.embedding, self.c)
 
         inputs = embedding_dropout(inputs, self.keep_prob, is_train=self.is_training)
-        # outputs1,state = self._build_rnn_graph_lstm(inputs=inputs, config=config, is_training=True)
-        # rnn = rnn_lstm(num_layers=config.num_layers, hidden_size=config.hidden_size, batch_size=config.batch_size)
+        print(inputs.get_shape().as_list())
+
+        ### rnn
+
+        # # outputs1,state = self._build_rnn_graph_lstm(inputs=inputs, config=config, is_training=True)
+        # # rnn = rnn_lstm(num_layers=config.num_layers, hidden_size=config.hidden_size, batch_size=config.batch_size)
+        # # outputs1, state = rnn(inputs=inputs, sequence_length=self.c_len)
+        # rnn = rnn_bi_lstm(num_layers=config.num_layers, hidden_size=config.hidden_size, batch_size=config.batch_size)
         # outputs1, state = rnn(inputs=inputs, sequence_length=self.c_len)
-        rnn = rnn_bi_lstm(num_layers=config.num_layers, hidden_size=config.hidden_size, batch_size=config.batch_size)
-        outputs1, state = rnn(inputs=inputs, sequence_length=self.c_len)
+        #
+        # # outputs_shape = tf.shape(outputs1)
+        # # outputs = tf.slice(outputs1,[0,outputs_shape[1]-1,0],[outputs_shape[0],1,outputs_shape[2]])
+        # # outputs = tf.reshape(outputs, [self.batch_size,-1])
+        # # outputs = state[-1][-1]
+        #
+        # outputs = tf.concat([state[0][-1][-1],state[-1][-1][-1]],axis=1)
 
-        # outputs_shape = tf.shape(outputs1)
-        # outputs = tf.slice(outputs1,[0,outputs_shape[1]-1,0],[outputs_shape[0],1,outputs_shape[2]])
-        # outputs = tf.reshape(outputs, [self.batch_size,-1])
-        # outputs = state[-1][-1]
+        ### cnn
 
-        outputs = tf.concat([state[0][-1][-1],state[-1][-1][-1]],axis=1)
+        self.filter_size = 4
+        self.out_channels = 3
+        self.pool_size = 4
+        self.embedding_size = 300
+        my_cnn = cnn(filter_size=4,batch_size=self.batch_size,out_channels=3,pool_size=4)
+        print(inputs.get_shape().as_list())
+        outputs1 = my_cnn(inputs,max_sequence_length=self.c_max_len)
+        print(outputs1.get_shape().as_list())
+        outputs = tf.reshape(outputs1,shape=[self.batch_size, -1])
 
-        w = tf.get_variable("w", dtype=tf.float32,
-                            initializer=tf.random_uniform([self.hidden_size*2,self.num_classes]))
-        b = tf.get_variable("b", dtype=tf.float32, initializer=tf.zeros([self.batch_size, self.num_classes]))
-        logits = tf.matmul(outputs,w)+b
+
+        ### last dense
+
+        # w = tf.get_variable("w", dtype=tf.float32,
+        #                     initializer=tf.random_uniform([self.hidden_size*2,self.num_classes]))
+        # b = tf.get_variable("b", dtype=tf.float32, initializer=tf.zeros([self.batch_size, self.num_classes]))
+        # logits = tf.matmul(outputs,w)+b
+        my_dense = dense(self.num_classes)
+        logits = my_dense(outputs)
 
         losses = tf.nn.softmax_cross_entropy_with_logits_v2(labels=tf.stop_gradient(self.y), logits=logits)
         self.loss = tf.reduce_mean(losses)
-        self.w = w
-        self.b = b
+        # self.w = w
+        # self.b = b
         self.logits = logits
         self.losses = losses
         self.outputs = outputs1
-        self.state = state
+        # self.state = state
 
         # accuracy
         self.predictions = tf.argmax(logits, axis=1)
